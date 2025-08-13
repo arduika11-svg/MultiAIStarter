@@ -1,8 +1,151 @@
 <?xml version="1.0" encoding="utf-8"?>
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
-  android:layout_width="match_parent" android:layout_height="match_parent">
-  <TextView
-    android:layout_width="wrap_content" android:layout_height="wrap_content"
-    android:text="Multi-AI Starter ✔" android:textSize="22sp"
-    android:layout_gravity="center"/>
-</FrameLayout>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical"
+    android:padding="16dp"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <!-- სათაური -->
+    <TextView
+        android:id="@+id/title"
+        android:text="Multi‑AI Starter"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content" />
+
+    <!-- პროვაიდერების ჩექბოქსები -->
+    <LinearLayout
+        android:orientation="horizontal"
+        android:layout_marginTop="12dp"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <CheckBox
+            android:id="@+id/tOpenAI"
+            android:checked="true"
+            android:text="OpenAI"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"/>
+
+        <CheckBox
+            android:id="@+id/tGrok"
+            android:layout_marginStart="16dp"
+            android:checked="true"
+            android:text="Grok"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"/>
+
+        <CheckBox
+            android:id="@+id/tGemini"
+            android:layout_marginStart="16dp"
+            android:checked="true"
+            android:text="Gemini"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"/>
+    </LinearLayout>
+
+    <!-- ინპუტი -->
+    <EditText
+        android:id="@+id/etPrompt"
+        android:hint="კითხვა..."
+        android:layout_marginTop="12dp"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"/>
+
+    <!-- ღილაკები -->
+    <LinearLayout
+        android:orientation="horizontal"
+        android:layout_marginTop="8dp"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <Button
+            android:id="@+id/btnAskAll"
+            android:text="Ask all"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"/>
+
+        <Button
+            android:id="@+id/btnAskOpenAI"
+            android:text="Ask OpenAI"
+            android:layout_marginStart="8dp"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"/>
+
+        <Button
+            android:id="@+id/btnAskGrok"
+            android:text="Ask Grok"
+            android:layout_marginStart="8dp"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"/>
+
+        <Button
+            android:id="@+id/btnAskGemini"
+            android:text="Ask Gemini"
+            android:layout_marginStart="8dp"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"/>
+    </LinearLayout>
+
+    <!-- სტატუსები -->
+    <TextView
+        android:id="@+id/status"
+        android:text="სტატუსი"
+        android:layout_marginTop="10dp"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"/>
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:fillViewport="true"
+        android:layout_marginTop="8dp">
+
+        <LinearLayout
+            android:orientation="vertical"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+
+            <TextView
+                android:text="Providers:"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"/>
+
+            <TextView
+                android:id="@+id/rawOpenAI"
+                android:text="OpenAI: —"
+                android:layout_marginTop="4dp"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"/>
+
+            <TextView
+                android:id="@+id/rawGrok"
+                android:text="Grok: —"
+                android:layout_marginTop="4dp"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"/>
+
+            <TextView
+                android:id="@+id/rawGemini"
+                android:text="Gemini: —"
+                android:layout_marginTop="4dp"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"/>
+        </LinearLayout>
+    </ScrollView>
+
+    <!-- გაერთიანებული პასუხი -->
+    <TextView
+        android:id="@+id/unified"
+        android:text="Unified answer გამოჩნდება აქ"
+        android:padding="8dp"
+        android:background="#eeeeee"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"/>
+</LinearLayout>
