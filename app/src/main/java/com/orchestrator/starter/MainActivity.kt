@@ -3,7 +3,13 @@ package com.orchestrator.starter
 import android.os.Bundle
 import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
-import okhttp3.*
+import okhttp3.Call
+import okhttp3.Callback
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.Response
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
 import java.io.IOException
 
@@ -24,7 +30,14 @@ class MainActivity : AppCompatActivity() {
     private lateinit var unified: TextView
 
     private val http = OkHttpClient()
-    private val endpoint = "https://example.workers.dev/ask" // შეცვალე შენით
+    private val jsonMedia = "application/json; charset=utf-8".toMediaType()
+    private val sp by lazy { getSharedPreferences("conn", MODE_PRIVATE) }
+
+    // თუ Connections-ში "Worker Base URL" არ გაქვს ჩაწერილი, აიწერს ამ default-ს
+    private fun endpoint(): String {
+        val base = (sp.getString("worker", null) ?: "https://example.workers.dev").trimEnd('/')
+        return "$base/ask"
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -53,7 +66,7 @@ class MainActivity : AppCompatActivity() {
     private fun ask(targets: List<String>) {
         val active = mutableListOf<String>()
         if (tOpenAI.isChecked && "OpenAI" in targets) active += "OpenAI"
-        if (tGrok.isChecked && "Grok" in targets) active += "Grok"
+        if (tGrok.isChecked   && "Grok"   in targets) active += "Grok"
         if (tGemini.isChecked && "Gemini" in targets) active += "Gemini"
         if (active.isEmpty()) { toast("აირჩიე მინ. ერთი პროვაიდერი"); return }
 
@@ -72,8 +85,8 @@ class MainActivity : AppCompatActivity() {
         }
 
         val req = Request.Builder()
-            .url(endpoint)
-            .post(RequestBody.create(MediaType.parse("application/json; charset=utf-8"), bodyJson.toString()))
+            .url(endpoint())
+            .post(bodyJson.toString().toRequestBody(jsonMedia))
             .build()
 
         http.newCall(req).enqueue(object : Callback {
@@ -84,28 +97,19 @@ class MainActivity : AppCompatActivity() {
                 }
             }
 
-            override fun onResponse(call: Call, resp: Response) {
-                resp.use {
-                    if (!it.isSuccessful) {
-                        runOnUiThread {
-                            status.text = "HTTP ${it.code()}"
-                            toast("სერვერის შეცდომა")
-                        }
-                        return
-                    }
-                    val txt = it.body()?.string().orEmpty()
-
+            override fun onResponse(call: Call, response: Response) {
+                response.use { r ->
+                    val txt = r.body?.string().orEmpty()
                     runOnUiThread {
-                        status.text = "მზადაა"
-
-                        val r = try { JSONObject(txt) } catch (_: Exception) { null }
-                        if (r == null) {
-                            unified.text = txt
+                        status.text = if (r.isSuccessful) "მზადაა" else "HTTP ${r.code}"
+                        val obj = try { JSONObject(txt) } catch (_: Exception) { null }
+                        if (obj == null) {
+                            unified.text = txt.ifEmpty { "ცარიელი პასუხი" }
                         } else {
-                            val openai = r.opt("openai")?.toString() ?: "—"
-                            val grok   = r.opt("grok")?.toString()   ?: "—"
-                            val gemini = r.opt("gemini")?.toString() ?: "—"
-                            val uni    = r.opt("unified")?.toString() ?: txt
+                            val openai = obj.opt("openai")?.toString() ?: "—"
+                            val grok   = obj.opt("grok")?.toString()   ?: "—"
+                            val gemini = obj.opt("gemini")?.toString() ?: "—"
+                            val uni    = obj.opt("unified")?.toString() ?: txt
 
                             rawOpenAI.text = "OpenAI: $openai"
                             rawGrok.text   = "Grok: $grok"
