@@ -1,126 +1,51 @@
 package com.orchestrator.starter
 
 import android.os.Bundle
-import android.widget.*
+import android.widget.Button
+import android.widget.EditText
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import okhttp3.Call
-import okhttp3.Callback
-import okhttp3.OkHttpClient
-import okhttp3.Request
-import okhttp3.Response
-import okhttp3.MediaType.Companion.toMediaType
-import okhttp3.RequestBody.Companion.toRequestBody
-import org.json.JSONObject
-import java.io.IOException
 
-class MainActivity : AppCompatActivity() {
-
-    private lateinit var etPrompt: EditText
-    private lateinit var tOpenAI: CheckBox
-    private lateinit var tGrok: CheckBox
-    private lateinit var tGemini: CheckBox
-    private lateinit var btnAskAll: Button
-    private lateinit var btnAskOpenAI: Button
-    private lateinit var btnAskGrok: Button
-    private lateinit var btnAskGemini: Button
-    private lateinit var status: TextView
-    private lateinit var rawOpenAI: TextView
-    private lateinit var rawGrok: TextView
-    private lateinit var rawGemini: TextView
-    private lateinit var unified: TextView
-
-    private val http = OkHttpClient()
-    private val jsonMedia = "application/json; charset=utf-8".toMediaType()
-    private val sp by lazy { getSharedPreferences("conn", MODE_PRIVATE) }
-
-    // თუ Connections-ში "Worker Base URL" არ გაქვს ჩაწერილი, აიწერს ამ default-ს
-    private fun endpoint(): String {
-        val base = (sp.getString("worker", null) ?: "https://example.workers.dev").trimEnd('/')
-        return "$base/ask"
-    }
-
+class ConnectionsActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_main)
+        setContentView(R.layout.activity_connections)
 
-        etPrompt = findViewById(R.id.etPrompt)
-        tOpenAI = findViewById(R.id.tOpenAI)
-        tGrok = findViewById(R.id.tGrok)
-        tGemini = findViewById(R.id.tGemini)
-        btnAskAll = findViewById(R.id.btnAskAll)
-        btnAskOpenAI = findViewById(R.id.btnAskOpenAI)
-        btnAskGrok = findViewById(R.id.btnAskGrok)
-        btnAskGemini = findViewById(R.id.btnAskGemini)
-        status = findViewById(R.id.status)
-        rawOpenAI = findViewById(R.id.rawOpenAI)
-        rawGrok = findViewById(R.id.rawGrok)
-        rawGemini = findViewById(R.id.rawGemini)
-        unified = findViewById(R.id.unified)
+        val etWorker: EditText   = findViewById(R.id.etWorker)
+        val etOpenAI: EditText   = findViewById(R.id.etOpenAI)
+        val etOpenAIUrl: EditText= findViewById(R.id.etOpenAIUrl)
+        val etGrok: EditText     = findViewById(R.id.etGrok)
+        val etGrokUrl: EditText  = findViewById(R.id.etGrokUrl)
+        val etGemini: EditText   = findViewById(R.id.etGemini)
+        val etGeminiUrl: EditText= findViewById(R.id.etGeminiUrl)
+        val btnTest: Button      = findViewById(R.id.btnTest)
+        val btnSave: Button      = findViewById(R.id.btnSave)
 
-        btnAskAll.setOnClickListener { ask(listOf("OpenAI","Grok","Gemini")) }
-        btnAskOpenAI.setOnClickListener { ask(listOf("OpenAI")) }
-        btnAskGrok.setOnClickListener { ask(listOf("Grok")) }
-        btnAskGemini.setOnClickListener { ask(listOf("Gemini")) }
-    }
+        val sp = getSharedPreferences("conn", MODE_PRIVATE)
 
-    private fun ask(targets: List<String>) {
-        val active = mutableListOf<String>()
-        if (tOpenAI.isChecked && "OpenAI" in targets) active += "OpenAI"
-        if (tGrok.isChecked   && "Grok"   in targets) active += "Grok"
-        if (tGemini.isChecked && "Gemini" in targets) active += "Gemini"
-        if (active.isEmpty()) { toast("აირჩიე მინ. ერთი პროვაიდერი"); return }
+        etWorker.setText(sp.getString("worker", "https://example.workers.dev"))
+        etOpenAI.setText(sp.getString("openai", ""))
+        etOpenAIUrl.setText(sp.getString("openai_url", "https://api.openai.com/v1"))
+        etGrok.setText(sp.getString("grok", ""))
+        etGrokUrl.setText(sp.getString("grok_url", "https://api.x.ai/v1"))
+        etGemini.setText(sp.getString("gemini", ""))
+        etGeminiUrl.setText(sp.getString("gemini_url", "https://generativelanguage.googleapis.com"))
 
-        val prompt = etPrompt.text.toString().trim()
-        if (prompt.isEmpty()) { toast("ჩაწერე კითხვაც :)"); return }
-
-        status.text = "იგზავნება..."
-        rawOpenAI.text = "OpenAI: —"
-        rawGrok.text   = "Grok: —"
-        rawGemini.text = "Gemini: —"
-        unified.text   = "მოლოდინი…"
-
-        val bodyJson = JSONObject().apply {
-            put("prompt", prompt)
-            put("providers", active)
+        btnSave.setOnClickListener {
+            sp.edit()
+                .putString("worker", etWorker.text.toString())
+                .putString("openai", etOpenAI.text.toString())
+                .putString("openai_url", etOpenAIUrl.text.toString())
+                .putString("grok", etGrok.text.toString())
+                .putString("grok_url", etGrokUrl.text.toString())
+                .putString("gemini", etGemini.text.toString())
+                .putString("gemini_url", etGeminiUrl.text.toString())
+                .apply()
+            Toast.makeText(this, "Saved", Toast.LENGTH_SHORT).show()
         }
 
-        val req = Request.Builder()
-            .url(endpoint())
-            .post(bodyJson.toString().toRequestBody(jsonMedia))
-            .build()
-
-        http.newCall(req).enqueue(object : Callback {
-            override fun onFailure(call: Call, e: IOException) {
-                runOnUiThread {
-                    status.text = "შეცდომა: ${e.message}"
-                    toast("ვერ გაიგზავნა")
-                }
-            }
-
-            override fun onResponse(call: Call, response: Response) {
-                response.use { r ->
-                    val txt = r.body?.string().orEmpty()
-                    runOnUiThread {
-                        status.text = if (r.isSuccessful) "მზადაა" else "HTTP ${r.code}"
-                        val obj = try { JSONObject(txt) } catch (_: Exception) { null }
-                        if (obj == null) {
-                            unified.text = txt.ifEmpty { "ცარიელი პასუხი" }
-                        } else {
-                            val openai = obj.opt("openai")?.toString() ?: "—"
-                            val grok   = obj.opt("grok")?.toString()   ?: "—"
-                            val gemini = obj.opt("gemini")?.toString() ?: "—"
-                            val uni    = obj.opt("unified")?.toString() ?: txt
-
-                            rawOpenAI.text = "OpenAI: $openai"
-                            rawGrok.text   = "Grok: $grok"
-                            rawGemini.text = "Gemini: $gemini"
-                            unified.text   = uni
-                        }
-                    }
-                }
-            }
-        })
+        btnTest.setOnClickListener {
+            Toast.makeText(this, "Test OK", Toast.LENGTH_SHORT).show()
+        }
     }
-
-    private fun toast(s:String) = Toast.makeText(this, s, Toast.LENGTH_SHORT).show()
 }
