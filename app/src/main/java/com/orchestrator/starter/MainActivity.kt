@@ -69,9 +69,9 @@ class MainActivity : AppCompatActivity() {
 
         status.text = "იგზავნება..."
         rawOpenAI.text = "OpenAI: —"
-        rawGrok.text = "Grok: —"
+        rawGrok.text   = "Grok: —"
         rawGemini.text = "Gemini: —"
-        unified.text = "მოლოდინი…"
+        unified.text   = "მოლოდინი…"
 
         val bodyJson = JSONObject().apply {
             put("prompt", prompt)
@@ -80,7 +80,7 @@ class MainActivity : AppCompatActivity() {
 
         val req = Request.Builder()
             .url(endpoint)
-            .post(RequestBody.create(MediaType.parse("application/json"), bodyJson.toString()))
+            .post(RequestBody.create(MediaType.parse("application/json; charset=utf-8"), bodyJson.toString()))
             .build()
 
         http.newCall(req).enqueue(object : Callback {
@@ -100,25 +100,27 @@ class MainActivity : AppCompatActivity() {
                         }
                         return
                     }
-                    val txt = it.body()!!.string()
-                    val raw = runCatching { JSONObject(txt) }.getOrNull()
+                    val txt = it.body()?.string().orEmpty()
 
                     runOnUiThread {
                         status.text = "მზადაა"
-                        if (raw == null) {
+
+                        // JSON ვპარსავთ აქვე, ლამბდაში → აღარ არის nullable-ს პრობლემა
+                        val r = runCatching { JSONObject(txt) }.getOrNull()
+                        if (r == null) {
+                            // ბექენდმა უბრალო ტექსტი დააბრუნა
                             unified.text = txt
-                            return@runOnUiThread
+                        } else {
+                            // ველოდებით ფორმატს: { "openai": "...", "grok": "...", "gemini": "...", "unified": "..." }
+                            rawOpenAI.text = "OpenAI: " + r.optString("openai", "—")
+                            rawGrok.text   = "Grok: "   + r.optString("grok", "—")
+                            rawGemini.text = "Gemini: " + r.optString("gemini", "—")
+                            unified.text   = r.optString("unified", txt).ifEmpty { txt }
                         }
-                        // ველოდებით JSON ასეთ ფორმატს:
-                        // { "openai": "...", "grok": "...", "gemini": "...", "unified": "..." }
-                        rawOpenAI.text = "OpenAI: " + (raw.optString("openai","—"))
-                        rawGrok.text   = "Grok: "   + (raw.optString("grok","—"))
-                        rawGemini.text = "Gemini: " + (raw.optString("gemini","—"))
-                        unified.text   = raw.optString("unified", "—")
                     }
                 }
-      }
-              })
+            }
+        })
     }
 
     private fun toast(s:String) = Toast.makeText(this, s, Toast.LENGTH_SHORT).show()
