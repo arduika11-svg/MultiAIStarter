@@ -24,9 +24,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var unified: TextView
 
     private val http = OkHttpClient()
-
-    // დროებით placeholder URL – მერე ჩაანაცვლებ შენს worker-ს ან ბექენდს
-    private val endpoint = "https://example.workers.dev/ask"
+    private val endpoint = "https://example.workers.dev/ask" // შეცვალე შენით
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -57,15 +55,10 @@ class MainActivity : AppCompatActivity() {
         if (tOpenAI.isChecked && "OpenAI" in targets) active += "OpenAI"
         if (tGrok.isChecked && "Grok" in targets) active += "Grok"
         if (tGemini.isChecked && "Gemini" in targets) active += "Gemini"
-        if (active.isEmpty()) {
-            toast("აირჩიე მინ. ერთი პროვაიდერი")
-            return
-        }
+        if (active.isEmpty()) { toast("აირჩიე მინ. ერთი პროვაიდერი"); return }
+
         val prompt = etPrompt.text.toString().trim()
-        if (prompt.isEmpty()) {
-            toast("ჩაწერე კითხვაც :)")
-            return
-        }
+        if (prompt.isEmpty()) { toast("ჩაწერე კითხვაც :)"); return }
 
         status.text = "იგზავნება..."
         rawOpenAI.text = "OpenAI: —"
@@ -105,17 +98,19 @@ class MainActivity : AppCompatActivity() {
                     runOnUiThread {
                         status.text = "მზადაა"
 
-                        // JSON ვპარსავთ აქვე, ლამბდაში → აღარ არის nullable-ს პრობლემა
-                        val r = runCatching { JSONObject(txt) }.getOrNull()
+                        val r = try { JSONObject(txt) } catch (_: Exception) { null }
                         if (r == null) {
-                            // ბექენდმა უბრალო ტექსტი დააბრუნა
                             unified.text = txt
                         } else {
-                            // ველოდებით ფორმატს: { "openai": "...", "grok": "...", "gemini": "...", "unified": "..." }
-                            rawOpenAI.text = "OpenAI: " + r.optString("openai", "—")
-                            rawGrok.text   = "Grok: "   + r.optString("grok", "—")
-                            rawGemini.text = "Gemini: " + r.optString("gemini", "—")
-                            unified.text   = r.optString("unified", txt).ifEmpty { txt }
+                            val openai = r.opt("openai")?.toString() ?: "—"
+                            val grok   = r.opt("grok")?.toString()   ?: "—"
+                            val gemini = r.opt("gemini")?.toString() ?: "—"
+                            val uni    = r.opt("unified")?.toString() ?: txt
+
+                            rawOpenAI.text = "OpenAI: $openai"
+                            rawGrok.text   = "Grok: $grok"
+                            rawGemini.text = "Gemini: $gemini"
+                            unified.text   = uni
                         }
                     }
                 }
